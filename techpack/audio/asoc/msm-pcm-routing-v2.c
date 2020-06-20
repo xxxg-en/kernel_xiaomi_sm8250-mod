@@ -1298,7 +1298,7 @@ static int msm_routing_get_adm_topology(int fedai_id, int session_type,
 					       ADM_LSM_TOPOLOGY_CAL_TYPE_IDX,
 					       true /*exact*/);
 	if (topology < 0) {
-		pr_debug("%s: Check for compatible topology\n", __func__);
+		pr_debug("%s: Check for compatible topology, exact %d\n", __func__, is_afe_proxy);
 		topology = msm_routing_find_topology_on_index(session_type,
 						      app_type,
 						      acdb_dev_id,
