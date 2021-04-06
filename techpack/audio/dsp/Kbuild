@@ -258,9 +258,9 @@ CDEFINES += -DAUDIO_FORCE_RESTART_ADSP_TEMP
 endif
 
 # TEST FOR UMI
-ifneq (,$(filter $(TARGET_PRODUCT), umi))
+#ifneq (,$(filter $(TARGET_PRODUCT), umi))
         CDEFINES += -DAUDIO_FORCE_RESTART_ADSP
-endif
+#endif
 
 KBUILD_CPPFLAGS += $(CDEFINES)
 
