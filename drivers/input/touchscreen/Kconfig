@@ -1393,4 +1393,6 @@ config TOUCHSCREEN_COMMON
 
 	  If unsure, say N.
 
+source "drivers/input/touchscreen/fts_521/Kconfig"
+
 endif
