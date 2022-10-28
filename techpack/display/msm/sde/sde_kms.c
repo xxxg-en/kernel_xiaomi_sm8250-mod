@@ -1275,7 +1275,7 @@ static void sde_kms_wait_for_commit_done(struct msm_kms *kms,
 			sde_encoder_virt_reset(encoder);
 	}
 
-	SDE_ATRACE_END("sde_ksm_wait_for_commit_done");
+	SDE_ATRACE_END("sde_kms_wait_for_commit_done");
 }
 
 static void sde_kms_prepare_fence(struct msm_kms *kms,
@@ -3977,10 +3977,7 @@ void sde_kms_kickoff_count(struct sde_kms *sde_kms)
 	struct dsi_display *display = NULL;
 
 	if (sde_kms != NULL) {
-		for (i = 0; i < sde_kms->dsi_display_count; ++i) {
+		for (i = 0; i < sde_kms->dsi_display_count; ++i)
 			display = sde_kms->dsi_displays[i];
-		}
 	}
-
-	return;
 }
