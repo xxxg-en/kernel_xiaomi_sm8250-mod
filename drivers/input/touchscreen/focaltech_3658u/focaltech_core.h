@@ -243,6 +243,7 @@ struct fts_ts_data {
 	bool power_status;
 	bool is_expert_mode;
 #endif
+
 };
 
 enum GESTURE_MODE_TYPE {
