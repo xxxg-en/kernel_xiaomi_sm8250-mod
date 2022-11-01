@@ -290,14 +290,6 @@ static void dsi_phy_hw_cphy_enable(struct dsi_phy_hw *phy,
 			glbl_rescode_bot_ctrl);
 	DSI_W32(phy, DSIPHY_CMN_GLBL_LPTX_STR_CTRL, 0x55);
 
-	if (cfg->cphy_strength) {
-		DSI_W32(phy, DSIPHY_CMN_VREG_CTRL_0, 0x50);
-		DSI_W32(phy, DSIPHY_CMN_VREG_CTRL_1, 0x54);
-		DSI_W32(phy, DSIPHY_CMN_GLBL_RESCODE_OFFSET_TOP_CTRL, 0x1F);
-		DSI_W32(phy, DSIPHY_CMN_GLBL_RESCODE_OFFSET_BOT_CTRL, 0x1F);
-		DSI_W32(phy, DSIPHY_CMN_GLBL_RESCODE_OFFSET_MID_CTRL, 0x1F);
-	}
-
 	/* Remove power down from all blocks */
 	DSI_W32(phy, DSIPHY_CMN_CTRL_0, 0x7f);
 
@@ -373,11 +365,10 @@ static void dsi_phy_hw_dphy_enable(struct dsi_phy_hw *phy,
 	} else {
 		vreg_ctrl_0 = less_than_1500_mhz ? 0x5B : 0x59;
 		glbl_str_swi_cal_sel_ctrl = less_than_1500_mhz ? 0x03 : 0x00;
-		if (cfg->clk_strength == 0) {
+		if (cfg->clk_strength == 0)
 			glbl_hstx_str_ctrl_0 = less_than_1500_mhz ? 0x66 : 0x88;
-		} else {
+		else
 			glbl_hstx_str_ctrl_0 = cfg->clk_strength;
-		}
 		glbl_rescode_top_ctrl = 0x03;
 		glbl_rescode_bot_ctrl = 0x3c;
 	}
@@ -414,11 +405,10 @@ static void dsi_phy_hw_dphy_enable(struct dsi_phy_hw *phy,
 			glbl_rescode_top_ctrl);
 	DSI_W32(phy, DSIPHY_CMN_GLBL_RESCODE_OFFSET_BOT_CTRL,
 			glbl_rescode_bot_ctrl);
-	if (cfg->clk_strength == 0) {
+	if (cfg->clk_strength == 0)
 		DSI_W32(phy, DSIPHY_CMN_GLBL_LPTX_STR_CTRL, 0x55);
-	} else {
+	else
 		DSI_W32(phy, DSIPHY_CMN_GLBL_LPTX_STR_CTRL, cfg->clk_strength);
-	}
 
 	/* Remove power down from all blocks */
 	DSI_W32(phy, DSIPHY_CMN_CTRL_0, 0x7f);

@@ -352,6 +352,7 @@ struct sde_crtc {
 	bool misr_enable_debugfs;
 	u32 misr_frame_count;
 	struct kthread_delayed_work idle_notify_work;
+	struct kthread_delayed_work idle_notify_work_cmd_mode;
 
 	struct sde_power_event *power_event;
 
@@ -458,6 +459,7 @@ struct sde_crtc_mi_state {
  * @scl3_lut_cfg: QSEED3 lut config
  * @new_perf: new performance state being requested
  * @secure_session: Indicates the type of secure session
+ * @mi_state: Mi part of crtc state
  */
 struct sde_crtc_state {
 	struct drm_crtc_state base;
@@ -493,6 +495,9 @@ struct sde_crtc_state {
 	uint32_t num_dim_layers_bank;
   
 	int secure_session;
+	/* Mi crtc state */
+	struct sde_crtc_mi_state mi_state;
+	uint32_t num_dim_layers_bank;
 };
 
 enum sde_crtc_irq_state {
