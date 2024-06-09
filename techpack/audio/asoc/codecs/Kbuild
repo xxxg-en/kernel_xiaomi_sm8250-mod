@@ -96,6 +96,10 @@ ifeq ($(TARGET_PRODUCT), psyche)
         CDEFINES += -DCONFIG_TARGET_PRODUCT_PSYCHE
 endif
 
+ifdef CONFIG_BOARD_PIPA
+CDEFINES += -DCONFIG_TARGET_PRODUCT_PIPA
+endif
+
 # As per target team, build is done as follows:
 # Defconfig : build with default flags
 # Slub      : defconfig  + CONFIG_SLUB_DEBUG := y +
@@ -260,6 +264,8 @@ ifeq (y, $(filter y, \
 	obj-y	+= cs35l41_k81/
 else ifeq ($(CONFIG_MACH_XIAOMI_MUNCH), y)
 	obj-y	+= tfa9874/
+else ifeq ($(CONFIG_BOARD_PIPA), y)
+	obj-y	+= aw882xx/
 else
 	obj-y	+= cs35l41/
 	obj-y	+= tfa98xx/
