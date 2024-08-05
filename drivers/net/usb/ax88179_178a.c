@@ -876,6 +876,7 @@ static int ax88179_link_reset(struct ax_device *axdev)
 			 GMII_PHY_PHYSR, 2, &reg16, 1);
 
 	if (!(reg16 & GMII_PHY_PHYSR_LINK)) {
+		netdev_info(dev->net, "ax88179 - Link status is: 0\n");
 		return -1;
 	} else if (GMII_PHY_PHYSR_GIGA == (reg16 & GMII_PHY_PHYSR_SMASK)) {
 		mode |= AX_MEDIUM_GIGAMODE;
