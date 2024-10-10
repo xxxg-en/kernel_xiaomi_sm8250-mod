@@ -2224,89 +2224,94 @@ static int f2fs_ioc_abort_atomic_write(struct file *filp)
 
 static int f2fs_ioc_shutdown(struct file *filp, unsigned long arg)
 {
-	struct inode *inode = file_inode(filp);
-	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
-	struct super_block *sb = sbi->sb;
-	__u32 in;
-	int ret = 0;
+    struct inode *inode = file_inode(filp);
+    struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
+    struct super_block *sb = sbi->sb;
+    __u32 in;
+    int ret = 0;
 
-	if (!capable(CAP_SYS_ADMIN))
-		return -EPERM;
+    if (!capable(CAP_SYS_ADMIN))
+        return -EPERM;
 
-	if (get_user(in, (__u32 __user *)arg))
-		return -EFAULT;
+    if (get_user(in, (__u32 __user *)arg))
+        return -EFAULT;
 
-	if (in != F2FS_GOING_DOWN_FULLSYNC) {
-		ret = mnt_want_write_file(filp);
-		if (ret) {
-			if (ret == -EROFS) {
-				ret = 0;
-				f2fs_stop_checkpoint(sbi, false,
-						STOP_CP_REASON_SHUTDOWN);
-				set_sbi_flag(sbi, SBI_IS_SHUTDOWN);
-				trace_f2fs_shutdown(sbi, in, ret);
-			}
-			return ret;
-		}
-	}
+    if (in != F2FS_GOING_DOWN_FULLSYNC) {
+        ret = mnt_want_write_file(filp);
+        if (ret) {
+            if (ret == -EROFS) {
+                ret = 0;
+                f2fs_stop_checkpoint(sbi, false,
+                        STOP_CP_REASON_SHUTDOWN);
+                set_sbi_flag(sbi, SBI_IS_SHUTDOWN);
+                trace_f2fs_shutdown(sbi, in, ret);
+            }
+            return ret;
+        }
+    }
 
-	switch (in) {
-	case F2FS_GOING_DOWN_FULLSYNC:
-		sb = freeze_bdev(sb->s_bdev);
-		if (IS_ERR(sb)) {
-			ret = PTR_ERR(sb);
-			goto out;
-		}
-		if (sb) {
-			f2fs_stop_checkpoint(sbi, false,
-					STOP_CP_REASON_SHUTDOWN);
-			set_sbi_flag(sbi, SBI_IS_SHUTDOWN);
-			thaw_bdev(sb->s_bdev, sb);
-		}
-		break;
-	case F2FS_GOING_DOWN_METASYNC:
-		/* do checkpoint only */
-		ret = f2fs_sync_fs(sb, 1);
-		if (ret)
-			goto out;
-		f2fs_stop_checkpoint(sbi, false, STOP_CP_REASON_SHUTDOWN);
-		set_sbi_flag(sbi, SBI_IS_SHUTDOWN);
-		break;
-	case F2FS_GOING_DOWN_NOSYNC:
-		f2fs_stop_checkpoint(sbi, false, STOP_CP_REASON_SHUTDOWN);
-		set_sbi_flag(sbi, SBI_IS_SHUTDOWN);
-		break;
-	case F2FS_GOING_DOWN_METAFLUSH:
-		f2fs_sync_meta_pages(sbi, META, LONG_MAX, FS_META_IO);
-		f2fs_stop_checkpoint(sbi, false, STOP_CP_REASON_SHUTDOWN);
-		set_sbi_flag(sbi, SBI_IS_SHUTDOWN);
-		break;
-	case F2FS_GOING_DOWN_NEED_FSCK:
-		set_sbi_flag(sbi, SBI_NEED_FSCK);
-		set_sbi_flag(sbi, SBI_CP_DISABLED_QUICK);
-		set_sbi_flag(sbi, SBI_IS_DIRTY);
-		/* do checkpoint only */
-		ret = f2fs_sync_fs(sb, 1);
-		goto out;
-	default:
-		ret = -EINVAL;
-		goto out;
-	}
+    switch (in) {
+    case F2FS_GOING_DOWN_FULLSYNC:
+        sb = freeze_bdev(sb->s_bdev);
+        if (IS_ERR(sb)) {
+            ret = PTR_ERR(sb);
+            goto out;
+        }
+        if (sb) {
+            f2fs_stop_checkpoint(sbi, false,
+                    STOP_CP_REASON_SHUTDOWN);
+            set_sbi_flag(sbi, SBI_IS_SHUTDOWN);
+            thaw_bdev(sb->s_bdev, sb);
+        }
+        break;
+    case F2FS_GOING_DOWN_METASYNC:
+        /* do checkpoint only */
+        ret = f2fs_sync_fs(sb, 1);
+        if (ret) {
+            if (ret == -EIO)
+                ret = 0;
+            goto out;
+        }
+        f2fs_stop_checkpoint(sbi, false, STOP_CP_REASON_SHUTDOWN);
+        set_sbi_flag(sbi, SBI_IS_SHUTDOWN);
+        break;
+    case F2FS_GOING_DOWN_NOSYNC:
+        f2fs_stop_checkpoint(sbi, false, STOP_CP_REASON_SHUTDOWN);
+        set_sbi_flag(sbi, SBI_IS_SHUTDOWN);
+        break;
+    case F2FS_GOING_DOWN_METAFLUSH:
+        f2fs_sync_meta_pages(sbi, META, LONG_MAX, FS_META_IO);
+        f2fs_stop_checkpoint(sbi, false, STOP_CP_REASON_SHUTDOWN);
+        set_sbi_flag(sbi, SBI_IS_SHUTDOWN);
+        break;
+    case F2FS_GOING_DOWN_NEED_FSCK:
+        set_sbi_flag(sbi, SBI_NEED_FSCK);
+        set_sbi_flag(sbi, SBI_CP_DISABLED_QUICK);
+        set_sbi_flag(sbi, SBI_IS_DIRTY);
+        /* do checkpoint only */
+        ret = f2fs_sync_fs(sb, 1);
+        if (ret == -EIO)
+            ret = 0;
+        goto out;
+    default:
+        ret = -EINVAL;
+        goto out;
+    }
 
-	f2fs_stop_gc_thread(sbi);
-	f2fs_stop_discard_thread(sbi);
+    f2fs_stop_gc_thread(sbi);
+    f2fs_stop_discard_thread(sbi);
 
-	f2fs_drop_discard_cmd(sbi);
-	clear_opt(sbi, DISCARD);
+    f2fs_drop_discard_cmd(sbi);
+    clear_opt(sbi, DISCARD);
 
-	f2fs_update_time(sbi, REQ_TIME);
+    f2fs_update_time(sbi, REQ_TIME);
 out:
-	if (in != F2FS_GOING_DOWN_FULLSYNC)
-		mnt_drop_write_file(filp);
+    if (in != F2FS_GOING_DOWN_FULLSYNC)
+        mnt_drop_write_file(filp);
 
-	trace_f2fs_shutdown(sbi, in, ret);
+    trace_f2fs_shutdown(sbi, in, ret);
 
-	return ret;
+    return ret;
 }
 
 static int f2fs_ioc_fitrim(struct file *filp, unsigned long arg)
