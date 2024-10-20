@@ -51,6 +51,8 @@ static const struct of_device_id dsi_display_dt_match[] = {
 	{}
 };
 
+struct dsi_display *primary_display;
+
 static void dsi_display_mask_ctrl_error_interrupts(struct dsi_display *display,
 			u32 mask, bool enable)
 {
@@ -5300,6 +5302,100 @@ static struct attribute_group dynamic_dsi_clock_fs_attrs_group = {
 	.attrs = dynamic_dsi_clock_fs_attrs,
 };
 
+
+static ssize_t sysfs_fod_ui_read(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	struct dsi_display *display;
+	bool status;
+
+	display = dev_get_drvdata(dev);
+	if (!display) {
+		pr_err("Invalid display\n");
+		return -EINVAL;
+	}
+
+	status = atomic_read(&display->fod_ui);
+
+	return snprintf(buf, PAGE_SIZE, "%d\n", status);
+}
+
+static DEVICE_ATTR(fod_ui, 0444,
+			sysfs_fod_ui_read,
+			NULL);
+
+#ifdef CONFIG_DRM_SDE_EXPO
+static ssize_t sysfs_dimlayer_exposure_read(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	struct dsi_display *display;
+	struct dsi_panel *panel;
+	bool status;
+
+	display = dev_get_drvdata(dev);
+	if (!display) {
+		pr_err("Invalid display\n");
+		return -EINVAL;
+	}
+
+	panel = display->panel;
+
+	mutex_lock(&panel->panel_lock);
+	status = panel->dimlayer_exposure;
+	mutex_unlock(&panel->panel_lock);
+
+	return snprintf(buf, PAGE_SIZE, "%d\n", status);
+}
+
+static ssize_t sysfs_dimlayer_exposure_write(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct dsi_display *display;
+	struct dsi_panel *panel;
+	struct drm_connector *connector = NULL;
+	bool status;
+	int rc = 0;
+
+	display = dev_get_drvdata(dev);
+	if (!display) {
+		pr_err("Invalid display\n");
+		return -EINVAL;
+	}
+
+	rc = kstrtobool(buf, &status);
+	if (rc) {
+		pr_err("%s: kstrtobool failed. rc=%d\n", __func__, rc);
+		return rc;
+	}
+
+	panel = display->panel;
+
+	panel->dimlayer_exposure = status;
+	dsi_display_set_backlight(connector, display, panel->bl_config.bl_level);
+
+	return count;
+}
+#endif
+
+#ifdef CONFIG_DRM_SDE_EXPO
+static DEVICE_ATTR(dimlayer_exposure, 0644,
+			sysfs_dimlayer_exposure_read,
+			sysfs_dimlayer_exposure_write);
+#endif
+
+static struct attribute *display_fs_attrs[] = {
+	&dev_attr_fod_ui.attr,
+#ifdef CONFIG_DRM_SDE_EXPO
+	&dev_attr_dimlayer_exposure.attr,
+#endif
+	NULL,
+};
+
+static struct attribute_group display_fs_attrs_group = {
+	.attrs = display_fs_attrs,
+};
+
+
 static int dsi_display_sysfs_init(struct dsi_display *display)
 {
 	int rc = 0;
@@ -5308,6 +5404,10 @@ static int dsi_display_sysfs_init(struct dsi_display *display)
 	if (display->panel->panel_mode == DSI_OP_CMD_MODE)
 		rc = sysfs_create_group(&dev->kobj,
 			&dynamic_dsi_clock_fs_attrs_group);
+
+	rc = sysfs_create_group(&dev->kobj, &display_fs_attrs_group);
+	if (rc)
+		pr_err("failed to create display device attributes");
 
 	return rc;
 
@@ -5323,6 +5423,13 @@ static int dsi_display_sysfs_deinit(struct dsi_display *display)
 
 	return 0;
 
+}
+
+void dsi_display_set_fod_ui(struct dsi_display *display, bool status)
+{
+	struct device *dev = &display->pdev->dev;
+	atomic_set(&display->fod_ui, status);
+	sysfs_notify(&dev->kobj, NULL, "fod_ui");
 }
 
 /**
@@ -6766,6 +6873,7 @@ int dsi_display_get_modes(struct dsi_display *display,
 exit:
 	*out_modes = display->modes;
 	rc = 0;
+	primary_display = display;
 
 error:
 	if (rc)
@@ -7654,6 +7762,10 @@ error:
 	mutex_unlock(&display->display_lock);
 	SDE_EVT32(SDE_EVTLOG_FUNC_EXIT);
 	return rc;
+}
+
+struct dsi_display *get_main_display(void) {
+	return primary_display;
 }
 
 static int dsi_display_calc_ctrl_roi(const struct dsi_display *display,

@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2016-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #ifndef _CAM_MEM_MGR_H_
@@ -56,6 +57,9 @@ struct cam_mem_buf_queue {
 	uintptr_t kmdvaddr;
 	bool active;
 	bool is_imported;
+	struct kref krefcount;
+	enum cam_smmu_mapping_client smmu_mapping_client;
+	struct kref urefcount;
 };
 
 /**
