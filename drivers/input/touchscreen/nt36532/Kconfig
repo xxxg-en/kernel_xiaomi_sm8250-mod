@@ -17,3 +17,10 @@ config TOUCHSCREEN_SUPPORT_NEW_GAME_MODE
       Say Y here if the device support new game mode
 
       If not support, say N.
+
+config NVT_PEN_CONNECT_STRATEGY
+	bool "Novatek NT36532 NVT_PEN_CONNECT_STRATEGY"
+	depends on TOUCHSCREEN_NT36532_HOSTDL_SPI
+	default y
+	help
+	  Xiaomi Pen Support
